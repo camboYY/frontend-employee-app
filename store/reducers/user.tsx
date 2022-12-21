@@ -1,5 +1,4 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import type { PayloadAction } from "@reduxjs/toolkit";
 import { http } from "store/config/http";
 import { AxiosError } from "axios";
 import { useSelector } from "react-redux";
@@ -19,12 +18,12 @@ const initialState: EmployeeState = {
 };
 
 export const deleteEmployeeById = createAsyncThunk<
-  Employee,
-  { userId: number }
->(namespace, async ({ userId }, thunkAPI) => {
+  void,
+  { employeeId: number }
+>(namespace, async ({ employeeId }, thunkAPI) => {
   try {
-    const response = await http.get<Employee>(`/employees/${userId}`);
-    return response;
+    await http.delete<void>(`/employees/${employeeId}`);
+    thunkAPI.dispatch(fetchAllEmployees());
   } catch (err: any) {
     let error: AxiosError<ValidationErrors> = err; // cast the error for access
     if (!error.response) {
@@ -39,6 +38,41 @@ export const fetchAllEmployees = createAsyncThunk<Employee[]>(
   async (_, { rejectWithValue }) => {
     try {
       const response = await http.get<Employee[]>(`/employees/`);
+      return response;
+    } catch (err: any) {
+      let error: AxiosError<ValidationErrors> = err; // cast the error for access
+      if (!error.response) {
+        throw err;
+      }
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+export const getEmployeeById = createAsyncThunk<
+  Employee,
+  { employeeId: number }
+>(namespace, async ({ employeeId }, { rejectWithValue }) => {
+  try {
+    const response = await http.get<Employee>(`/employees/${employeeId}`);
+    return response;
+  } catch (err: any) {
+    let error: AxiosError<ValidationErrors> = err; // cast the error for access
+    if (!error.response) {
+      throw err;
+    }
+    return rejectWithValue(error.response.data);
+  }
+});
+
+export const editEmployeeById = createAsyncThunk<Employee, Employee>(
+  namespace,
+  async ({ employeeId, ...params }, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await http.put<Employee>(`/employees/${employeeId}`, {
+        ...params,
+      });
+      dispatch(fetchAllEmployees());
       return response;
     } catch (err: any) {
       let error: AxiosError<ValidationErrors> = err; // cast the error for access
@@ -65,6 +99,24 @@ export const { actions, reducer } = createSlice({
       state.loading = "pending";
     });
     builder.addCase(fetchAllEmployees.rejected, (state, action) => {
+      state.loading = "failed";
+    });
+    builder.addCase(deleteEmployeeById.fulfilled, (state, action) => {
+      state.loading = "succeeded";
+    });
+    builder.addCase(deleteEmployeeById.pending, (state, action) => {
+      state.loading = "pending";
+    });
+    builder.addCase(deleteEmployeeById.rejected, (state, action) => {
+      state.loading = "failed";
+    });
+    builder.addCase(getEmployeeById.fulfilled, (state, action) => {
+      state.loading = "succeeded";
+    });
+    builder.addCase(getEmployeeById.pending, (state, action) => {
+      state.loading = "pending";
+    });
+    builder.addCase(getEmployeeById.rejected, (state, action) => {
       state.loading = "failed";
     });
   },

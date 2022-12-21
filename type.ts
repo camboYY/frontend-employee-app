@@ -3,7 +3,7 @@ export interface ValidationErrors {
   field_errors: Record<string, string>;
 }
 export interface Employee {
-  id: string;
+  employeeId: string;
   firstName: string;
   email: string;
   phoneNumber: string;
